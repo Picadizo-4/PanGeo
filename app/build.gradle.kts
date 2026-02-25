@@ -1,4 +1,5 @@
 plugins {
+    id("com.google.gms.google-services")
     alias(libs.plugins.android.application)
     alias(libs.plugins.kotlin.android)
 }
@@ -38,6 +39,11 @@ android {
 }
 
 dependencies {
+    // Importa la plataforma Firebase (BOM)
+    implementation(platform("com.google.firebase:firebase-bom:32.7.0"))
+    // Añade las librerías para Autenticación y Firestore
+    implementation("com.google.firebase:firebase-auth-ktx")
+    implementation("com.google.firebase:firebase-firestore-ktx")
     implementation(libs.androidx.core.ktx)
     implementation(libs.androidx.appcompat)
     implementation(libs.material)

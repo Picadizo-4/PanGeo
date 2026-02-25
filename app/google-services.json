@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "1005752101048",
+    "project_id": "pangeo-7180d",
+    "storage_bucket": "pangeo-7180d.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:1005752101048:android:d9f60018ce3ae0bcbcac4d",
+        "android_client_info": {
+          "package_name": "com.example.pangeo"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyCSFpR66-noxb3M5uQfXtrBxbhg-0VtvNE"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
