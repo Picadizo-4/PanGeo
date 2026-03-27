@@ -4,6 +4,8 @@ import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.rememberScrollState // NUEVO
+import androidx.compose.foundation.verticalScroll // NUEVO
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
@@ -48,6 +50,9 @@ fun RegisterScreen(
 
     val authState by viewModel.authState.collectAsState()
 
+    // --- ESTADO DEL SCROLL ---
+    val scrollState = rememberScrollState()
+
     // Tipografías
     val caveatFamily = remember { try { FontFamily(Font(R.font.caveat)) } catch (e: Exception) { FontFamily.Serif } }
 
@@ -67,8 +72,12 @@ fun RegisterScreen(
             modifier = Modifier.fillMaxSize().alpha(0.10f)
         )
 
+        // --- COLUMNA CON SCROLL ACTIVO ---
         Column(
-            modifier = Modifier.fillMaxSize().padding(24.dp),
+            modifier = Modifier
+                .fillMaxSize()
+                .verticalScroll(scrollState) // Esto permite que el contenido suba al abrir el teclado
+                .padding(24.dp),
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
             // Botón superior de atrás
@@ -78,10 +87,12 @@ fun RegisterScreen(
                 }
             }
 
-            Spacer(modifier = Modifier.height(10.dp))
+            Spacer(modifier = Modifier.height(5.dp))
 
-            Text("Nueva Expedición", fontSize = 55.sp, fontFamily = caveatFamily, fontWeight = FontWeight.ExtraBold, color = Color.Black)
-            Text("Crea tu perfil de explorador", fontSize = 28.sp, fontFamily = caveatFamily, color = Color.Gray, modifier = Modifier.padding(bottom = 20.dp))
+            Text("Nueva Expedición", fontSize = 48.sp, fontFamily = caveatFamily, fontWeight = FontWeight.ExtraBold, color = Color.Black)
+            Text("Crea tu perfil de explorador", fontSize = 24.sp, fontFamily = caveatFamily, color = Color.Gray)
+
+            Spacer(modifier = Modifier.height(20.dp))
 
             // CAMPO NICKNAME
             OutlinedTextField(
@@ -151,12 +162,12 @@ fun RegisterScreen(
                     text = if (passMismatch) "Las contraseñas no coinciden" else (authState as AuthState.Error).message,
                     color = Color.Red,
                     fontFamily = caveatFamily,
-                    fontSize = 16.sp,
+                    fontSize = 17.sp,
                     modifier = Modifier.padding(top = 8.dp)
                 )
             }
 
-            Spacer(modifier = Modifier.height(30.dp))
+            Spacer(modifier = Modifier.height(25.dp))
 
             // BOTÓN REGISTRAR
             Button(
@@ -165,13 +176,13 @@ fun RegisterScreen(
                         viewModel.register(email, password, nickname)
                     }
                 },
-                modifier = Modifier.fillMaxWidth().height(60.dp),
+                modifier = Modifier.fillMaxWidth().height(56.dp),
                 colors = ButtonDefaults.buttonColors(containerColor = Color.Black),
                 shape = RoundedCornerShape(16.dp),
                 enabled = authState !is AuthState.Loading && password.isNotEmpty() && !passMismatch
             ) {
                 if (authState is AuthState.Loading) {
-                    CircularProgressIndicator(color = Color.White, modifier = Modifier.size(24.dp))
+                    CircularProgressIndicator(color = Color.White, modifier = Modifier.size(24.dp), strokeWidth = 2.dp)
                 } else {
                     Text("Empezar aventura", fontSize = 24.sp, fontFamily = caveatFamily, fontWeight = FontWeight.Bold)
                 }
@@ -184,9 +195,11 @@ fun RegisterScreen(
                 verticalAlignment = Alignment.CenterVertically,
                 modifier = Modifier.clickable { onNavigateBack() }
             ) {
-                Text("¿Ya tienes cuenta? ", fontSize = 18.sp, color = Color.DarkGray, fontFamily = caveatFamily)
-                Text("Inicia sesión", fontSize = 18.sp, color = Color(0xFF4A69FF), fontWeight = FontWeight.Bold, fontFamily = caveatFamily)
+                Text("¿Ya tienes cuenta? ", fontSize = 19.sp, color = Color.DarkGray, fontFamily = caveatFamily)
+                Text("Inicia sesión", fontSize = 19.sp, color = Color(0xFF4A69FF), fontWeight = FontWeight.Bold, fontFamily = caveatFamily)
             }
+
+            Spacer(modifier = Modifier.height(40.dp)) // Espacio final para que el scroll no quede cortado
         }
 
         // --- DIÁLOGO DE ÉXITO Y VERIFICACIÓN ---
@@ -197,8 +210,8 @@ fun RegisterScreen(
                     Button(
                         onClick = {
                             showSuccessDialog = false
-                            viewModel.resetState() // Importante limpiar estado
-                            onNavigateBack() // Ir al login
+                            viewModel.resetState()
+                            onNavigateBack()
                         },
                         colors = ButtonDefaults.buttonColors(containerColor = Color.Black)
                     ) {

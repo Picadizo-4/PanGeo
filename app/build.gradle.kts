@@ -71,4 +71,5 @@ dependencies {
     // Corrutinas para que Firebase funcione perfecto con Jetpack Compose
     implementation("org.jetbrains.kotlinx:kotlinx-coroutines-play-services:1.7.3")
     implementation("com.google.android.gms:play-services-auth:21.0.0")
+    implementation("com.airbnb.android:lottie-compose:6.1.0")
 }
