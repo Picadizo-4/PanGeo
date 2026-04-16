@@ -15,7 +15,6 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
-import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
@@ -27,16 +26,26 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.example.pangeo.R
 
+/**
+ * Pantalla de selección regional para el modo de juego de Banderas.
+ * * Provee un acceso jerárquico a las expediciones por continente.
+ * * Sigue el patrón de diseño de "descubrimiento progresivo", mostrando
+ * claramente qué contenido está listo para jugar y cuál se encuentra en desarrollo.
+ *
+ * @param onNavigateBack Acción para regresar al selector de tipos de juego.
+ * @param onNavigateToEurope Acción para iniciar el desafío de banderas europeas.
+ */
 @Composable
 fun FlagsMenuScreen(
     onNavigateBack: () -> Unit,
     onNavigateToEurope: () -> Unit
 ) {
+    // Definición de tipografía manuscrita para coherencia de marca
     val caveatFamily = remember { try { FontFamily(Font(R.font.caveat)) } catch (e: Exception) { FontFamily.Serif } }
     val scrollState = rememberScrollState()
 
     Box(modifier = Modifier.fillMaxSize().background(Color(0xFFFDFDFD))) {
-        // Fondo mapa mundi suave
+        // Fondo temático: Mapa mundi sutil (marca de agua)
         Image(
             painter = painterResource(id = R.drawable.mapamundo),
             contentDescription = null,
@@ -50,7 +59,7 @@ fun FlagsMenuScreen(
                 .verticalScroll(scrollState)
                 .padding(24.dp)
         ) {
-            // Cabecera con botón volver
+            // --- CABECERA DE NAVEGACIÓN ---
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 verticalAlignment = Alignment.CenterVertically
@@ -60,8 +69,8 @@ fun FlagsMenuScreen(
                 }
                 Spacer(modifier = Modifier.width(8.dp))
                 Text(
-                    "Continentes",
-                    fontSize = 36.sp,
+                    text = "Continentes",
+                    fontSize = 40.sp,
                     fontFamily = caveatFamily,
                     fontWeight = FontWeight.Bold,
                     color = Color.Black
@@ -69,71 +78,77 @@ fun FlagsMenuScreen(
             }
 
             Spacer(modifier = Modifier.height(10.dp))
+
             Text(
-                "Selecciona una región para empezar tu expedición",
-                fontSize = 20.sp,
-                fontFamily = caveatFamily,
+                text = "Selecciona una región para empezar tu expedición",
+                fontSize = 16.sp,
+                fontFamily = FontFamily.SansSerif,
                 color = Color.Gray,
                 modifier = Modifier.padding(start = 8.dp)
             )
 
             Spacer(modifier = Modifier.height(30.dp))
 
-            // --- OPCIÓN ACTIVA: EUROPA ---
-            // Asegúrate de añadir una imagen llamada 'ic_europe' en drawable
+            // --- CONTENIDO ACTIVO: EUROPA ---
+            // Se utiliza el color granate/rojo característico de la sección de banderas
             ContinentButton(
                 title = "Europa",
-                imageRes = R.drawable.mapaeuropa, // Cambia esto por tu nuevo icono de Europa
-                fontFamily = caveatFamily,
+                imageRes = R.drawable.mapaeuropa,
                 onClick = onNavigateToEurope
             )
 
             Spacer(modifier = Modifier.height(24.dp))
 
-            // --- OPCIONES BLOQUEADAS (PRÓXIMAMENTE) ---
+            // --- SECCIÓN DE PRÓXIMOS LANZAMIENTOS ---
             Text(
-                "Próximamente",
-                fontSize = 22.sp,
+                text = "Próximamente",
+                fontSize = 24.sp,
                 fontFamily = caveatFamily,
                 color = Color.LightGray,
                 modifier = Modifier.padding(start = 8.dp, bottom = 12.dp)
             )
 
-            LockedContinentButton("América", caveatFamily)
+            LockedContinentButton("América")
             Spacer(modifier = Modifier.height(16.dp))
-            LockedContinentButton("Asia", caveatFamily)
+            LockedContinentButton("Asia")
             Spacer(modifier = Modifier.height(16.dp))
-            LockedContinentButton("África", caveatFamily)
+            LockedContinentButton("África")
             Spacer(modifier = Modifier.height(16.dp))
-            LockedContinentButton("Oceanía", caveatFamily)
+            LockedContinentButton("Oceanía")
 
             Spacer(modifier = Modifier.height(40.dp))
         }
     }
 }
 
+/**
+ * Componente de tarjeta para continentes habilitados.
+ * * @param title Nombre de la región geográfica.
+ * @param imageRes Referencia al recurso visual del mapa regional.
+ * @param onClick Evento de navegación al ser pulsado.
+ */
 @Composable
 fun ContinentButton(
     title: String,
     imageRes: Int,
-    fontFamily: FontFamily,
     onClick: () -> Unit
 ) {
     Card(
         modifier = Modifier
             .fillMaxWidth()
-            .height(120.dp)
-            .shadow(8.dp, RoundedCornerShape(24.dp))
+            .height(110.dp)
+            .shadow(6.dp, RoundedCornerShape(24.dp))
             .clickable { onClick() },
         shape = RoundedCornerShape(24.dp),
-        colors = CardDefaults.cardColors(containerColor = Color(0xFF4A60B2))
+        colors = CardDefaults.cardColors(containerColor = Color(0xFFD55B67))
     ) {
         Row(
             modifier = Modifier.fillMaxSize().padding(16.dp),
             verticalAlignment = Alignment.CenterVertically
         ) {
+            // Contenedor circular para el icono regional
             Surface(
-                modifier = Modifier.size(80.dp),
+                modifier = Modifier.size(70.dp),
                 shape = RoundedCornerShape(16.dp),
                 color = Color.White.copy(alpha = 0.2f)
             ) {
@@ -147,23 +162,27 @@ fun ContinentButton(
             Spacer(modifier = Modifier.width(20.dp))
             Text(
                 text = title,
-                fontSize = 38.sp,
-                fontFamily = fontFamily,
-                fontWeight = FontWeight.ExtraBold,
+                fontSize = 26.sp,
+                fontFamily = FontFamily.SansSerif,
+                fontWeight = FontWeight.Black,
                 color = Color.White
             )
         }
     }
 }
 
+/**
+ * Componente visual para regiones en desarrollo.
+ * Utiliza una estética de "deshabilitado" mediante colores neutros y opacidad baja.
+ */
 @Composable
-fun LockedContinentButton(title: String, fontFamily: FontFamily) {
+fun LockedContinentButton(title: String) {
     Card(
         modifier = Modifier
             .fillMaxWidth()
-            .height(90.dp)
+            .height(80.dp)
             .alpha(0.6f),
-        shape = RoundedCornerShape(24.dp),
+        shape = RoundedCornerShape(20.dp),
         colors = CardDefaults.cardColors(containerColor = Color(0xFFE0E0E0))
     ) {
         Row(
@@ -173,8 +192,8 @@ fun LockedContinentButton(title: String, fontFamily: FontFamily) {
         ) {
             Text(
                 text = title,
-                fontSize = 28.sp,
-                fontFamily = fontFamily,
+                fontSize = 20.sp,
+                fontFamily = FontFamily.SansSerif,
                 fontWeight = FontWeight.Bold,
                 color = Color.Gray
             )
@@ -182,7 +201,7 @@ fun LockedContinentButton(title: String, fontFamily: FontFamily) {
                 imageVector = Icons.Default.Lock,
                 contentDescription = "Bloqueado",
                 tint = Color.Gray,
-                modifier = Modifier.size(24.dp)
+                modifier = Modifier.size(20.dp)
             )
         }
     }

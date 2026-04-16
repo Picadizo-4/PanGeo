@@ -33,6 +33,16 @@ import androidx.compose.ui.unit.sp
 import com.example.pangeo.R
 import com.example.pangeo.viewmodel.AuthViewModel
 
+/**
+ * Pantalla de Perfil del Usuario.
+ * * Gestiona la visualización del progreso del jugador, incluyendo:
+ * 1. Sistema de Niveles: Lógica parabólica de XP para calcular el progreso al siguiente rango.
+ * 2. Identidad: Gestión del avatar generado y edición del apodo (Nickname).
+ * 3. Sesión: Control de salida segura del ecosistema PanGeo.
+ * * @param viewModel Fuente de verdad para los datos del usuario y lógica de actualización.
+ * @param onNavigateBack Acción para regresar al tablero principal.
+ * @param onLogout Acción para invalidar la sesión actual y retornar al Login.
+ */
 @Composable
 fun ProfileScreen(
     viewModel: AuthViewModel,
@@ -41,10 +51,13 @@ fun ProfileScreen(
 ) {
     val caveatFamily = remember { try { FontFamily(Font(R.font.caveat)) } catch (e: Exception) { FontFamily.Serif } }
     val userData by viewModel.userData
-
-    // --- ESTADO DEL SCROLL ---
     val scrollState = rememberScrollState()
 
+    /**
+     * Gestión de Carga:
+     * Si los datos desde Firebase aún no han sido resueltos, se presenta un
+     * indicador de carga para evitar errores de puntero nulo en la interfaz.
+     */
     if (userData == null) {
         Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
             CircularProgressIndicator(color = Color(0xFF4A60B2))
@@ -52,37 +65,29 @@ fun ProfileScreen(
         return
     }
 
+    // Extracción segura de propiedades tras validación de nulidad
     val userNickname = userData!!.nickname
     val userEmail = userData!!.email
     val userXP = userData!!.xp
     val userLevel = userData!!.level
     val userRank = userData!!.rank
 
-    // --- NUEVA LÓGICA DE BARRA DE PROGRESO EXPONENCIAL ---
-    // XP base del nivel actual (ej: Nivel 2 = 100 XP)
+    /**
+     * Lógica de Progresión (RPG Mechanics):
+     * Calcula el porcentaje de avance dentro del nivel actual basándose en una
+     * curva de dificultad incremental.
+     */
     val currentLevelBaseXP = 100 * ((userLevel - 1) * (userLevel - 1))
-
-    // XP requerida para alcanzar el SIGUIENTE nivel (ej: Nivel 3 = 400 XP)
     val nextLevelXP = 100 * (userLevel * userLevel)
-
-    // XP conseguida DENTRO de este nivel (ej: Tengo 250 XP -> Llevo 150 dentro del Nivel 2)
     val xpInCurrentLevel = userXP - currentLevelBaseXP
-
-    // XP total que separa el nivel actual del siguiente (ej: de 100 a 400 = 300 XP)
     val xpNeededForNext = nextLevelXP - currentLevelBaseXP
-
-    // Porcentaje de la barra de carga (de 0.0f a 1.0f)
-    val progressFlow = if (xpNeededForNext > 0) {
-        xpInCurrentLevel.toFloat() / xpNeededForNext.toFloat()
-    } else {
-        1f // Si llega al nivel 100, la barra se queda llena
-    }
+    val progressFlow = if (xpNeededForNext > 0) xpInCurrentLevel.toFloat() / xpNeededForNext.toFloat() else 1f
 
     val initialLetter = if (userNickname.isNotEmpty()) userNickname.first().uppercase().toString() else "E"
-
     var showEditDialog by remember { mutableStateOf(false) }
 
     Box(modifier = Modifier.fillMaxSize().background(Color(0xFFFDFDFD))) {
+        // Marca de agua de fondo
         Image(
             painter = painterResource(id = R.drawable.mapamundo),
             contentDescription = null,
@@ -90,241 +95,151 @@ fun ProfileScreen(
             modifier = Modifier.fillMaxSize().alpha(0.04f)
         )
 
-        // --- COLUMNA ADAPTABLE CON SCROLL ---
         Column(
             modifier = Modifier
                 .fillMaxSize()
-                .verticalScroll(scrollState) // Vital para pantallas pequeñas
+                .verticalScroll(scrollState)
                 .padding(24.dp),
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
-            Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.Start) {
+            Row(modifier = Modifier.fillMaxWidth()) {
                 IconButton(onClick = onNavigateBack) {
                     Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Volver")
                 }
             }
 
-            Spacer(modifier = Modifier.height(5.dp))
+            Spacer(modifier = Modifier.height(10.dp))
 
-            // --- AVATAR DINÁMICO (Ligeramente más pequeño) ---
-            Box(
-                modifier = Modifier.size(120.dp),
-                contentAlignment = Alignment.Center
-            ) {
-                Box(
-                    modifier = Modifier
-                        .size(120.dp)
-                        .shadow(10.dp, CircleShape)
-                        .background(Color.White, CircleShape)
-                        .padding(5.dp)
-                ) {
-                    Box(
-                        modifier = Modifier
-                            .fillMaxSize()
-                            .background(Color(0xFF4A60B2), CircleShape),
-                        contentAlignment = Alignment.Center
-                    ) {
+            // --- SECCIÓN DE AVATAR Y NIVEL ---
+            Box(modifier = Modifier.size(120.dp), contentAlignment = Alignment.Center) {
+                Box(modifier = Modifier.size(120.dp).shadow(8.dp, CircleShape).background(Color.White, CircleShape).padding(4.dp)) {
+                    Box(modifier = Modifier.fillMaxSize().background(Color(0xFF4A60B2), CircleShape), contentAlignment = Alignment.Center) {
                         Text(
                             text = initialLetter,
-                            fontSize = 65.sp,
+                            fontSize = 60.sp,
                             fontFamily = caveatFamily,
-                            fontWeight = FontWeight.ExtraBold,
-                            color = Color.White,
-                            textAlign = TextAlign.Center,
-                            modifier = Modifier.offset(y = (-4).dp, x = (-4).dp)
+                            fontWeight = FontWeight.Bold,
+                            color = Color.White
                         )
                     }
                 }
-
+                // Badge de nivel superpuesto
                 Surface(
                     color = Color(0xFFF39C12),
                     shape = CircleShape,
-                    modifier = Modifier
-                        .size(36.dp)
-                        .align(Alignment.BottomEnd)
-                        .offset(x = (-2).dp, y = (-2).dp)
-                        .shadow(4.dp, CircleShape)
+                    modifier = Modifier.size(36.dp).align(Alignment.BottomEnd).shadow(4.dp, CircleShape)
                 ) {
                     Box(contentAlignment = Alignment.Center) {
-                        Text(
-                            text = userLevel.toString(),
-                            color = Color.White,
-                            fontWeight = FontWeight.ExtraBold,
-                            fontSize = 18.sp
-                        )
+                        Text(text = userLevel.toString(), color = Color.White, fontWeight = FontWeight.Black, fontSize = 16.sp, fontFamily = FontFamily.SansSerif)
                     }
                 }
             }
 
-            Spacer(modifier = Modifier.height(12.dp))
+            Spacer(modifier = Modifier.height(16.dp))
 
-            // NICKNAME ADAPTABLE
-            Row(
-                verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.Center,
-                modifier = Modifier.fillMaxWidth().padding(horizontal = 8.dp)
-            ) {
+            // --- IDENTIDAD DEL EXPLORADOR ---
+            Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.Center) {
                 Text(
                     text = userNickname,
-                    fontSize = 42.sp, // Bajado un poco de 48 para pantallas estrechas
+                    fontSize = 36.sp,
                     fontFamily = caveatFamily,
                     fontWeight = FontWeight.ExtraBold,
                     color = Color.Black,
                     maxLines = 1,
-                    overflow = TextOverflow.Ellipsis,
-                    modifier = Modifier.weight(1f, fill = false) // Permite que el texto se encoja
+                    overflow = TextOverflow.Ellipsis
                 )
-                Spacer(modifier = Modifier.width(6.dp))
-                IconButton(onClick = { showEditDialog = true }, modifier = Modifier.size(30.dp)) {
-                    Icon(Icons.Default.Edit, contentDescription = "Editar", tint = Color.Gray, modifier = Modifier.size(18.dp))
+                IconButton(onClick = { showEditDialog = true }) {
+                    Icon(Icons.Default.Edit, "Editar apodo", tint = Color.Gray, modifier = Modifier.size(20.dp))
                 }
             }
 
-            Text(
-                text = userEmail,
-                fontSize = 24.sp,
-                fontFamily = caveatFamily,
-                color = Color.Gray
-            )
+            Text(text = userEmail, fontSize = 16.sp, fontFamily = FontFamily.SansSerif, color = Color.Gray)
 
-            // --- ÁREA DE PROGRESO (Gamificación) ---
+            // --- PANEL DE PROGRESO Y RANGO ---
             Column(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(vertical = 25.dp, horizontal = 10.dp),
+                modifier = Modifier.fillMaxWidth().padding(vertical = 32.dp, horizontal = 8.dp),
                 horizontalAlignment = Alignment.CenterHorizontally
             ) {
-                Row(
-                    modifier = Modifier.fillMaxWidth().padding(bottom = 8.dp),
-                    horizontalArrangement = Arrangement.SpaceBetween,
-                    verticalAlignment = Alignment.Bottom
-                ) {
-                    Text(
-                        text = "Rango: $userRank",
-                        fontSize = 20.sp,
-                        fontFamily = caveatFamily,
-                        fontWeight = FontWeight.ExtraBold,
-                        color = Color(0xFF467742)
-                    )
-                    Row(verticalAlignment = Alignment.CenterVertically) {
-                        Icon(Icons.Default.Star, contentDescription = null, tint = Color(0xFFE1B44B), modifier = Modifier.size(18.dp))
-                        Spacer(modifier = Modifier.width(4.dp))
-                        Text(
-                            text = "Nivel $userLevel",
-                            fontSize = 22.sp,
-                            fontFamily = caveatFamily,
-                            fontWeight = FontWeight.ExtraBold,
-                            color = Color.Black
-                        )
-                    }
+                Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
+                    Text("Rango: $userRank", fontSize = 16.sp, fontFamily = FontFamily.SansSerif, fontWeight = FontWeight.Bold, color = Color(0xFF467742))
+                    Text("Nivel $userLevel", fontSize = 16.sp, fontFamily = FontFamily.SansSerif, fontWeight = FontWeight.Bold)
                 }
 
-                Box(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .height(25.dp)
-                        .clip(RoundedCornerShape(50.dp))
-                        .background(Color.LightGray.copy(alpha = 0.3f))
-                ) {
+                Spacer(modifier = Modifier.height(8.dp))
+
+                // Barra de progreso personalizada con degradado
+                Box(modifier = Modifier.fillMaxWidth().height(20.dp).clip(RoundedCornerShape(10.dp)).background(Color(0xFFEEEEEE))) {
                     Box(
                         modifier = Modifier
                             .fillMaxWidth(progressFlow.coerceIn(0f, 1f))
                             .fillMaxHeight()
-                            .background(
-                                Brush.horizontalGradient(
-                                    colors = listOf(Color(0xFFE1B44B), Color(0xFFF39C12))
-                                )
-                            )
+                            .background(Brush.horizontalGradient(listOf(Color(0xFFE1B44B), Color(0xFFF39C12))))
                     )
                 }
 
                 Spacer(modifier = Modifier.height(8.dp))
 
                 Text(
-                    text = "${userXP}XP / ${nextLevelXP}XP",
-                    fontSize = 18.sp,
-                    fontFamily = caveatFamily,
-                    color = Color.Gray,
-                    fontWeight = FontWeight.Bold
+                    text = "${userXP} / ${nextLevelXP} XP",
+                    fontSize = 14.sp,
+                    fontFamily = FontFamily.Monospace,
+                    fontWeight = FontWeight.Bold,
+                    color = Color.Gray
                 )
             }
 
-            // --- BOTONES INFERIORES ADAPTABLES ---
             Spacer(modifier = Modifier.height(20.dp))
 
+            // --- ACCIONES GLOBALES ---
             Button(
                 onClick = onNavigateBack,
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .height(60.dp)
-                    .shadow(6.dp, RoundedCornerShape(20.dp)),
+                modifier = Modifier.fillMaxWidth().height(56.dp).shadow(4.dp, RoundedCornerShape(16.dp)),
                 colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF6AD07B)),
-                shape = RoundedCornerShape(20.dp)
+                shape = RoundedCornerShape(16.dp)
             ) {
-                Text("VOLVER", fontSize = 28.sp, fontFamily = caveatFamily, fontWeight = FontWeight.ExtraBold)
+                Text("VOLVER AL MENÚ", fontSize = 18.sp, fontFamily = FontFamily.SansSerif, fontWeight = FontWeight.Black)
             }
 
-            Spacer(modifier = Modifier.height(10.dp))
+            Spacer(modifier = Modifier.height(16.dp))
 
             TextButton(onClick = onLogout) {
-                Text("Cerrar Sesión", color = Color.Black, fontFamily = caveatFamily, fontSize = 20.sp)
+                Text("Cerrar Sesión", color = Color.Red, fontFamily = FontFamily.SansSerif, fontWeight = FontWeight.Medium)
             }
 
-            Spacer(modifier = Modifier.height(40.dp)) // Espacio final para el scroll
+            Spacer(modifier = Modifier.height(40.dp))
         }
 
-        // --- DIÁLOGO DE EDICIÓN (ADAPTABLE) ---
-        // --- DIÁLOGO DE EDICIÓN ---
+        // Diálogo de edición de Nickname con validación reactiva
         if (showEditDialog) {
             var tempNickname by remember { mutableStateOf(userNickname) }
-            var errorMessage by remember { mutableStateOf("") } // Para avisar si el nombre está repetido
+            var errorMessage by remember { mutableStateOf("") }
 
             AlertDialog(
                 onDismissRequest = { showEditDialog = false },
-                title = { Text("Cambiar Nickname", fontFamily = caveatFamily, fontSize = 26.sp) },
+                title = { Text("Editar Apodo", fontFamily = caveatFamily, fontSize = 24.sp, fontWeight = FontWeight.Bold) },
                 text = {
                     Column {
                         OutlinedTextField(
                             value = tempNickname,
-                            onValueChange = {
-                                if (it.length <= 15) {
-                                    tempNickname = it
-                                    errorMessage = ""
-                                }
-                            },
-                            label = { Text("Nuevo apodo", fontFamily = caveatFamily) },
-                            shape = RoundedCornerShape(12.dp),
+                            onValueChange = { if (it.length <= 15) { tempNickname = it; errorMessage = "" } },
+                            label = { Text("Nuevo apodo") },
                             modifier = Modifier.fillMaxWidth(),
-                            isError = errorMessage.isNotEmpty()
+                            textStyle = androidx.compose.ui.text.TextStyle(fontFamily = FontFamily.Default)
                         )
                         if (errorMessage.isNotEmpty()) {
-                            Text(
-                                text = errorMessage,
-                                color = Color.Red,
-                                fontSize = 14.sp,
-                                fontFamily = caveatFamily,
-                                modifier = Modifier.padding(top = 4.dp)
-                            )
+                            Text(errorMessage, color = Color.Red, fontSize = 12.sp, modifier = Modifier.padding(top = 4.dp))
                         }
                     }
                 },
                 confirmButton = {
                     TextButton(onClick = {
                         viewModel.updateNickname(tempNickname) { success, message ->
-                            if (success) {
-                                showEditDialog = false // Cerramos si todo fue bien
-                            } else {
-                                errorMessage = message // Mostramos el error (ej: "Nickname en uso")
-                            }
+                            if (success) showEditDialog = false else errorMessage = message
                         }
-                    }) {
-                        Text("Guardar", fontWeight = FontWeight.Bold, fontFamily = caveatFamily, fontSize = 18.sp)
-                    }
+                    }) { Text("GUARDAR", fontWeight = FontWeight.Bold) }
                 },
                 dismissButton = {
-                    TextButton(onClick = { showEditDialog = false }) {
-                        Text("Cancelar", fontFamily = caveatFamily, fontSize = 18.sp)
-                    }
+                    TextButton(onClick = { showEditDialog = false }) { Text("CANCELAR") }
                 }
             )
         }

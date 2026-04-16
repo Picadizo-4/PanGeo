@@ -1,6 +1,6 @@
 package com.example.pangeo.model
 
-// Importante: Los nombres de las variables deben coincidir con los que usemos en Firestore
+// Los nombres de las variables deben coincidir con los que usamos en Firestore
 data class User(
     val uid: String = "",
     val email: String = "",

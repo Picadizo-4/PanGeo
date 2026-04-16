@@ -1,7 +1,5 @@
 package com.example.pangeo.viewmodel
 
-import androidx.compose.runtime.State
-import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
@@ -9,86 +7,165 @@ import com.example.pangeo.ui.game.flags.FlagQuestion
 import com.example.pangeo.ui.game.flags.FlagRepository
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
+import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
+import java.text.Normalizer
 
+/**
+ * ViewModel encargado de la lógica del juego de Banderas.
+ * * Responsabilidades:
+ * 1. Gestión de la sesión de juego (Estado de carga, puntuación y progreso).
+ * 2. Control de flujos asíncronos para el temporizador y el feedback de usuario.
+ * 3. Normalización de entradas de texto para permitir una validación flexible (sin acentos/mayúsculas).
+ */
 class FlagsViewModel : ViewModel() {
-    private var allQuestions: List<FlagQuestion> = emptyList()
 
-    private val _currentQuestionIndex = mutableIntStateOf(0)
-    val currentQuestionIndex: State<Int> = _currentQuestionIndex
+    private var questionList = emptyList<FlagQuestion>()
 
-    private val _score = mutableIntStateOf(0)
-    val score: State<Int> = _score
+    // --- ESTADOS DE LA UI (ESTADO REACTIVO) ---
+    val currentQuestionIndex = mutableStateOf(0)
+    val score = mutableStateOf(0)
+    val isGameOver = mutableStateOf(false)
+    val totalQuestions = mutableStateOf(0)
 
-    private val _isGameOver = mutableStateOf(false)
-    val isGameOver: State<Boolean> = _isGameOver
+    /**
+     * Pregunta actual (Bandera y opciones).
+     * Se expone como lectura para la UI pero su mutación está restringida al ViewModel.
+     */
+    var currentQuestion: FlagQuestion? = null
+        private set
 
-    private val _selectedAnswer = mutableStateOf<String?>(null)
-    val selectedAnswer: State<String?> = _selectedAnswer
+    val selectedAnswer = mutableStateOf<String?>(null)
+    val textFeedback = mutableStateOf<Boolean?>(null)
 
-    private val _elapsedTime = mutableIntStateOf(0)
-    val elapsedTime: State<Int> = _elapsedTime
-
-    // NUEVO: Para saber el total de preguntas y pintar el contador "1 / 44"
-    private val _totalQuestions = mutableIntStateOf(0)
-    val totalQuestions: State<Int> = _totalQuestions
-
+    // Gestión del tiempo de juego
+    val elapsedTime = mutableStateOf(0)
     private var timerJob: Job? = null
 
-    val currentQuestion: FlagQuestion?
-        get() = if (allQuestions.isNotEmpty() && _currentQuestionIndex.intValue < allQuestions.size) {
-            allQuestions[_currentQuestionIndex.intValue]
-        } else null
-
-    fun checkAnswer(selected: String) {
-        if (_selectedAnswer.value != null) return
-
-        _selectedAnswer.value = selected
-
-        viewModelScope.launch {
-            if (selected == currentQuestion?.correctAnswer) {
-                _score.intValue += 10
-            }
-
-            delay(500) // 0.5 segundos de pausa
-
-            if (_currentQuestionIndex.intValue < allQuestions.size - 1) {
-                _currentQuestionIndex.intValue++
-                _selectedAnswer.value = null
-            } else {
-                _isGameOver.value = true
-                stopTimer()
-            }
-        }
+    /**
+     * Motor de Normalización de Texto:
+     * Transforma la entrada del usuario para compararla con la respuesta correcta
+     * omitiendo tildes, mayúsculas y espacios innecesarios.
+     */
+    private fun String.limpiarTexto(): String {
+        val normalized = Normalizer.normalize(this, Normalizer.Form.NFD)
+        return normalized.replace("\\p{Mn}+".toRegex(), "").lowercase().trim()
     }
 
+    // --- LÓGICA DE NEGOCIO ---
+
+    /**
+     * Reinicia el estado del juego y carga una nueva lista de preguntas.
+     * * Implementa una doble aleatoriedad: baraja el orden de las banderas
+     * y el orden de las opciones dentro de cada bandera.
+     */
     fun resetGame() {
-        _currentQuestionIndex.intValue = 0
-        _score.intValue = 0
-        _isGameOver.value = false
-        _selectedAnswer.value = null
-        _elapsedTime.intValue = 0
+        val allQuestions = FlagRepository.getEuropeQuestions()
 
-        // 1. Cargamos TODAS las preguntas del repositorio
-        val repoQuestions = FlagRepository.getEuropeQuestions()
+        // Barajamos y creamos copias inmutables con opciones mezcladas
+        questionList = allQuestions.shuffled().map { it.copy(options = it.options.shuffled()) }
 
-        // 2. Las barajamos y barajamos sus opciones
-        allQuestions = repoQuestions.shuffled().map { question ->
-            question.copy(options = question.options.shuffled())
-        }
+        totalQuestions.value = questionList.size
+        currentQuestionIndex.value = 0
+        score.value = 0
+        isGameOver.value = false
+        selectedAnswer.value = null
+        textFeedback.value = null
+        currentQuestion = questionList.firstOrNull()
 
-        // 3. Actualizamos el total (ahora marcará 44 automáticamente)
-        _totalQuestions.intValue = allQuestions.size
-
+        elapsedTime.value = 0
         startTimer()
     }
 
+    /**
+     * Validación para el Modo Selección.
+     * Bloquea múltiples entradas y dispara la transición automática tras un breve delay.
+     */
+    fun checkAnswerSelectionMode(answer: String) {
+        if (selectedAnswer.value != null) return
+
+        selectedAnswer.value = answer
+        val isCorrect = answer == currentQuestion?.correctAnswer
+
+        if (isCorrect) {
+            score.value += 10
+        }
+
+        viewModelScope.launch {
+            delay(400) // Delay pedagógico para mostrar acierto/fallo
+            moveToNextQuestion()
+        }
+    }
+
+    /**
+     * Validación para el Modo Escritura (Confirmación manual o salto).
+     */
+    fun checkAnswerTextMode(userInput: String) {
+        if (textFeedback.value != null) return
+
+        val correctAnswer = currentQuestion?.correctAnswer ?: ""
+        val isCorrect = userInput.limpiarTexto() == correctAnswer.limpiarTexto()
+
+        textFeedback.value = isCorrect
+        if (isCorrect) score.value += 10
+
+        viewModelScope.launch {
+            delay(300)
+            moveToNextQuestion()
+        }
+    }
+
+    /**
+     * Validación Automática en Tiempo Real:
+     * Compara el texto mientras el usuario escribe, permitiendo un avance fluido
+     * si la respuesta es correcta sin necesidad de pulsar "Aceptar".
+     */
+    fun checkAutoAnswerTextMode(userInput: String) {
+        if (textFeedback.value != null) return
+
+        val correctAnswer = currentQuestion?.correctAnswer ?: ""
+
+        if (userInput.limpiarTexto() == correctAnswer.limpiarTexto() && correctAnswer.isNotBlank()) {
+            textFeedback.value = true
+            score.value += 10
+
+            viewModelScope.launch {
+                delay(700) // Feedback de éxito prolongado para el usuario
+                moveToNextQuestion()
+            }
+        }
+    }
+
+    /**
+     * Orquestador de la transición entre preguntas.
+     * Finaliza la partida cuando se agota el dataset.
+     */
+    private fun moveToNextQuestion() {
+        selectedAnswer.value = null
+        textFeedback.value = null
+
+        val nextIndex = currentQuestionIndex.value + 1
+        if (nextIndex < questionList.size) {
+            currentQuestionIndex.value = nextIndex
+            currentQuestion = questionList[nextIndex]
+        } else {
+            isGameOver.value = true
+            stopTimer()
+        }
+    }
+
+    // --- GESTIÓN DE CORRUTINAS (TIEMPO) ---
+
+    /**
+     * Inicia un Job periódico que incrementa el contador de segundos.
+     * Se cancela automáticamente mediante el ciclo de vida del ViewModel.
+     */
     private fun startTimer() {
         timerJob?.cancel()
         timerJob = viewModelScope.launch {
-            while (true) {
+            while (isActive) {
                 delay(1000)
-                _elapsedTime.intValue++
+                elapsedTime.value += 1
             }
         }
     }

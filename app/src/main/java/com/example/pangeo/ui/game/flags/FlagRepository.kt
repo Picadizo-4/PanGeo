@@ -2,6 +2,13 @@ package com.example.pangeo.ui.game.flags
 
 import com.example.pangeo.R
 
+/**
+ * Modelo de datos para las preguntas del juego de reconocimiento de banderas.
+ * * @property id Identificador único de la pregunta.
+ * @property flagImageRes Referencia al recurso gráfico de la bandera en la carpeta drawable.
+ * @property options Lista de nombres de países propuestos como opciones.
+ * @property correctAnswer El nombre del país que corresponde exactamente a la bandera mostrada.
+ */
 data class FlagQuestion(
     val id: Int,
     val flagImageRes: Int,
@@ -9,7 +16,21 @@ data class FlagQuestion(
     val correctAnswer: String
 )
 
+/**
+ * Repositorio de activos visuales para el módulo de banderas.
+ * * Este objeto centraliza el dataset de Europa. El diseño de las preguntas sigue
+ * un criterio de dificultad pedagógica, incluyendo como distractores a países
+ * con banderas visualmente similares (ej. banderas tricolores o con cruces nórdicas).
+ */
 object FlagRepository {
+
+    /**
+     * Genera la lista de desafíos para el continente europeo.
+     * * Nota técnica: Se recomienda que el ViewModel consuma esta lista y aplique
+     * una función de barajado (.shuffled()) tanto a la lista de preguntas como
+     * a las opciones internas para maximizar la rejugabilidad.
+     * * @return [List] de [FlagQuestion] con los 44 países de Europa y sus recursos asociados.
+     */
     fun getEuropeQuestions(): List<FlagQuestion> {
         return listOf(
             FlagQuestion(1, R.drawable.eu_albania, listOf("Albania", "Montenegro", "Macedonia del Norte", "Serbia"), "Albania"),

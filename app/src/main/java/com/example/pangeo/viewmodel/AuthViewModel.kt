@@ -11,6 +11,9 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlin.math.sqrt
 import com.google.firebase.firestore.SetOptions
 
+/**
+ * Representa los posibles estados de la autenticación para control de UI.
+ */
 sealed class AuthState {
     object Idle : AuthState()
     object Loading : AuthState()
@@ -18,25 +21,29 @@ sealed class AuthState {
     data class Error(val message: String) : AuthState()
 }
 
+/**
+ * ViewModel central de Autenticación, Perfil y Progresión de PanGeo.
+ */
 class AuthViewModel : ViewModel() {
     private val auth = FirebaseAuth.getInstance()
     private val db = FirebaseFirestore.getInstance()
 
+    // Estado reactivo para la navegación y feedback de UI
     private val _authState = MutableStateFlow<AuthState>(AuthState.Idle)
     val authState: StateFlow<AuthState> = _authState
 
+    // Estado de los datos del usuario logueado
     private val _userData = mutableStateOf<User?>(null)
     val userData: State<User?> = _userData
 
-    // --- BLOQUE DE INICIO: PERSISTENCIA DE SESIÓN ---
     init {
         checkCurrentUser()
     }
 
     private fun checkCurrentUser() {
         val firebaseUser = auth.currentUser
-        // Si el usuario existe y ha verificado su email (o es Google)
         if (firebaseUser != null) {
+            // Verificamos si el email está validado o si es una cuenta de Google
             if (firebaseUser.isEmailVerified || firebaseUser.providerData.any { it.providerId == "google.com" }) {
                 fetchUserData(firebaseUser.uid)
             } else {
@@ -46,6 +53,8 @@ class AuthViewModel : ViewModel() {
             _authState.value = AuthState.Idle
         }
     }
+
+    // --- FLUJOS DE AUTENTICACIÓN ---
 
     fun register(email: String, pass: String, nickname: String) {
         _authState.value = AuthState.Loading
@@ -67,15 +76,13 @@ class AuthViewModel : ViewModel() {
                                         val newUser = User(uid, email, nickname, 0, 1, "Recluta de Pangeo")
                                         db.collection("users").document(uid).set(newUser)
                                             .addOnSuccessListener {
-                                                // No hacemos Success aquí para que no entre sin verificar
                                                 auth.signOut()
                                                 _authState.value = AuthState.Error("Cuenta creada. Verifica tu email para entrar.")
                                             }
                                     }
                                 }
                             } else {
-                                val exception = task.exception
-                                val msg = when (exception) {
+                                val msg = when (task.exception) {
                                     is com.google.firebase.auth.FirebaseAuthUserCollisionException -> "Este email ya está registrado."
                                     else -> "Error al registrar cuenta."
                                 }
@@ -93,7 +100,7 @@ class AuthViewModel : ViewModel() {
                 if (task.isSuccessful) {
                     val user = auth.currentUser
                     user?.reload()?.addOnCompleteListener {
-                        if (user.isEmailVerified) {
+                        if (user?.isEmailVerified == true) {
                             fetchUserData(user.uid)
                         } else {
                             auth.signOut()
@@ -103,21 +110,6 @@ class AuthViewModel : ViewModel() {
                 } else {
                     _authState.value = AuthState.Error("Email o contraseña incorrectos.")
                 }
-            }
-    }
-
-    fun fetchUserData(uid: String) {
-        _authState.value = AuthState.Loading
-        db.collection("users").document(uid).get()
-            .addOnSuccessListener { document ->
-                val user = document.toObject(User::class.java)
-                if (user != null) {
-                    _userData.value = user
-                    _authState.value = AuthState.Success
-                }
-            }
-            .addOnFailureListener {
-                _authState.value = AuthState.Error("Error al cargar datos del perfil.")
             }
     }
 
@@ -164,14 +156,27 @@ class AuthViewModel : ViewModel() {
         auth.sendPasswordResetEmail(email)
             .addOnCompleteListener { task ->
                 if (task.isSuccessful) {
-                    _authState.value = AuthState.Idle // Para volver a permitir login
+                    _authState.value = AuthState.Success
                 } else {
-                    _authState.value = AuthState.Error("No pudimos enviar el correo.")
+                    _authState.value = AuthState.Error("No pudimos enviar el correo de recuperación.")
                 }
             }
     }
 
-    fun resetState() { _authState.value = AuthState.Idle }
+    fun fetchUserData(uid: String) {
+        _authState.value = AuthState.Loading
+        db.collection("users").document(uid).get()
+            .addOnSuccessListener { document ->
+                val user = document.toObject(User::class.java)
+                if (user != null) {
+                    _userData.value = user
+                    _authState.value = AuthState.Success
+                }
+            }
+            .addOnFailureListener {
+                _authState.value = AuthState.Error("Error al cargar datos del perfil.")
+            }
+    }
 
     fun logout() {
         auth.signOut()
@@ -179,7 +184,12 @@ class AuthViewModel : ViewModel() {
         _authState.value = AuthState.Idle
     }
 
-    // --- MOTOR DE PROGRESIÓN ---
+    fun resetState() {
+        _authState.value = AuthState.Idle
+    }
+
+    // --- MOTOR DE PROGRESIÓN (XP Y NIVELES) ---
+
     fun addXP(gainedXP: Int) {
         val currentUser = _userData.value ?: return
         val newXP = currentUser.xp + gainedXP
@@ -205,36 +215,48 @@ class AuthViewModel : ViewModel() {
             }
     }
 
-    // --- RÉCORDS PERSONALES ---
+    // --- GESTIÓN DE RÉCORDS Y ESTADÍSTICAS ---
+
     fun saveGameRecord(gameId: String, score: Int, time: Int, onNewTimeRecord: (Boolean) -> Unit) {
         val uid = auth.currentUser?.uid ?: return
         val docRef = db.collection("records").document(uid)
 
         docRef.get().addOnSuccessListener { document ->
-            var isNewTimeRecord = false
-            if (document.exists()) {
-                val currentBestScore = document.getLong("${gameId}_score")?.toInt() ?: -1
-                val currentBestTime = document.getLong("${gameId}_time")?.toInt() ?: Int.MAX_VALUE
+            var isNewRecord = false
+            val currentBestScore = document.getLong("${gameId}_score")?.toInt() ?: -1
+            val currentBestTime = document.getLong("${gameId}_time")?.toInt() ?: Int.MAX_VALUE
 
-                if (score >= currentBestScore && time < currentBestTime) {
-                    isNewTimeRecord = true
-                }
+            val data = mutableMapOf<String, Any>()
 
-                val data = mutableMapOf<String, Any>()
-                if (score > currentBestScore) data["${gameId}_score"] = score
-                if (isNewTimeRecord) {
-                    data["${gameId}_time"] = time
-                    data["${gameId}_score"] = score
-                }
-                if (data.isNotEmpty()) docRef.set(data, SetOptions.merge())
-            } else {
-                isNewTimeRecord = true
-                val data = mapOf("${gameId}_score" to score, "${gameId}_time" to time)
+            if (score > currentBestScore) {
+                data["${gameId}_score"] = score
+                data["${gameId}_time"] = time
+                isNewRecord = true
+            } else if (score == currentBestScore && time < currentBestTime) {
+                data["${gameId}_time"] = time
+                isNewRecord = true
+            }
+
+            if (data.isNotEmpty()) {
                 docRef.set(data, SetOptions.merge())
             }
-            onNewTimeRecord(isNewTimeRecord)
+            onNewTimeRecord(isNewRecord)
         }
     }
+
+    fun saveCultureStreakRecord(newStreak: Int) {
+        val uid = auth.currentUser?.uid ?: return
+        val docRef = db.collection("records").document(uid)
+
+        docRef.get().addOnSuccessListener { document ->
+            val currentBestStreak = document.getLong("cultura_supervivencia_streak")?.toInt() ?: -1
+            if (newStreak > currentBestStreak) {
+                val data = mapOf("cultura_supervivencia_streak" to newStreak)
+                docRef.set(data, SetOptions.merge())
+            }
+        }
+    }
+
     fun updateNickname(newNickname: String, onResult: (Boolean, String) -> Unit) {
         if (newNickname.isBlank()) {
             onResult(false, "El nombre no puede estar vacío")
@@ -244,7 +266,6 @@ class AuthViewModel : ViewModel() {
         val uid = auth.currentUser?.uid ?: return
         _authState.value = AuthState.Loading
 
-        // 1. Comprobar si el nuevo nickname ya existe en otro usuario
         db.collection("users")
             .whereEqualTo("nickname", newNickname)
             .get()
@@ -253,16 +274,14 @@ class AuthViewModel : ViewModel() {
                     _authState.value = AuthState.Idle
                     onResult(false, "Este nickname ya está en uso")
                 } else {
-                    // 2. El nombre está libre, procedemos a actualizar
                     db.collection("users").document(uid).update("nickname", newNickname)
                         .addOnSuccessListener {
-                            // Actualizamos el estado local para que HomeScreen y ProfileScreen cambien al instante
                             _userData.value = _userData.value?.copy(nickname = newNickname)
                             _authState.value = AuthState.Success
                             onResult(true, "Nickname actualizado")
                         }
                         .addOnFailureListener {
-                            _authState.value = AuthState.Error("Error al conectar con la base de datos")
+                            _authState.value = AuthState.Error("Error al actualizar")
                             onResult(false, "Error al actualizar")
                         }
                 }
