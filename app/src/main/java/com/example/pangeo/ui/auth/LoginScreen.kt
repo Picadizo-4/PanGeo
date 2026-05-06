@@ -111,17 +111,14 @@ fun LoginScreen(
 
     /**
      * Efecto secundario (Side Effect) para la navegación reactiva.
-     * Reacciona a cambios en [AuthState]. Si el éxito se debe a un login normal, navega.
-     * Si se detecta un éxito sin contraseña, se asume un flujo de recuperación de cuenta.
+     * Reacciona a cambios en [AuthState].
      */
     LaunchedEffect(authState) {
         if (authState is AuthState.Success) {
-            if (password.isEmpty() && email.isNotEmpty()) {
-                showResetDialog = true
-                viewModel.resetState()
-            } else if (password.isNotEmpty()) {
-                onLoginSuccess()
-            }
+            onLoginSuccess()
+        } else if (authState is AuthState.ResetEmailSent) {
+            showResetDialog = true
+            viewModel.resetState()
         }
     }
 

@@ -276,6 +276,10 @@ fun StudyMapScreen(
                                     "SM" -> "eu_sanmarino"
                                     "VA" -> "eu_vatikan"
                                     "MT" -> "eu_malta"
+                                    "TR" -> "eu_turkey"
+                                    "GE" -> "eu_georgia"
+                                    "AM" -> "eu_armenia"
+
                                     else -> "eu_${id.lowercase()}"
                                 }
                                 context.resources.getIdentifier(resName, "drawable", context.packageName)

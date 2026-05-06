@@ -9,6 +9,7 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.CardGiftcard
+import androidx.compose.material.icons.filled.Favorite
 import androidx.compose.material.icons.filled.LocalFireDepartment
 import androidx.compose.material.icons.filled.Support
 import androidx.compose.material3.*
@@ -30,14 +31,7 @@ import com.example.pangeo.viewmodel.CultureViewModel
 
 /**
  * Pantalla del modo de juego "Supervivencia Cultural".
- * * Implementa una mecánica de 'muerte súbita' donde el usuario debe mantener una racha
- * de aciertos. Incluye elementos de gamificación avanzada como:
- * 1. Fondos dinámicos que reaccionan a la racha del usuario.
- * 2. Sistema de comodines (50/50) con lógica de recarga por hitos.
- * 3. Persistencia de récords personales en Firebase.
- * * @param viewModel Lógica de preguntas y gestión de rachas.
- * @param authViewModel Gestión de experiencia (XP) y récords globales del perfil.
- * @param onNavigateBack Control de navegación hacia el menú principal.
+ * Actualizado con sistema de 3 vidas y visualización de corazones.
  */
 @Composable
 fun CultureGameScreen(
@@ -50,9 +44,9 @@ fun CultureGameScreen(
 
     var showIntro by remember { mutableStateOf(true) }
 
-    // Suscripción a estados reactivos del ViewModel
     val streak by viewModel.streak
     val score by viewModel.score
+    val lives by viewModel.lives
     val isGameOver by viewModel.isGameOver
     val isVictory by viewModel.isVictory
     val question = viewModel.currentQuestion.value
@@ -64,25 +58,14 @@ fun CultureGameScreen(
     val bestStreak by viewModel.bestStreak
     val isNewRecord by viewModel.isNewRecord
 
-    /**
-     * Lógica de Feedback Visual:
-     * El color de fondo evoluciona proporcionalmente a la racha,
-     * proporcionando una narrativa visual de progresión y dificultad.
-     */
     val targetColor = CultureRepository.getBackgroundColorForStreak(streak)
     val animatedBackgroundColor by animateColorAsState(
         targetValue = if (showIntro || isGameOver) Color(0xFFFDFDFD) else targetColor,
         animationSpec = tween(durationMillis = 800)
     )
 
-    // Ajuste de contraste: El texto pasa a blanco cuando el fondo es muy oscuro (rachas altas)
     val textColor = if (streak >= 14 && !isGameOver && !showIntro) Color.White else Color.Black
 
-    /**
-     * Side Effect de Finalización:
-     * Al detectar el fin del juego, se sincronizan los resultados con Firebase.
-     * Solo se ejecuta una vez gracias a la restricción del bloque 'LaunchedEffect'.
-     */
     LaunchedEffect(isGameOver) {
         if (isGameOver && !showIntro) {
             authViewModel.addXP(score)
@@ -99,7 +82,7 @@ fun CultureGameScreen(
             GameOverLayout(caveatFamily, isNewRecord, bestStreak, streak, score, context, viewModel, isVictory, onNavigateBack)
         } else {
             Column(modifier = Modifier.fillMaxSize().padding(24.dp)) {
-                GameHeader(viewModel, streak, bestStreak, textColor)
+                GameHeader(viewModel, streak, bestStreak, lives, textColor)
 
                 Spacer(modifier = Modifier.weight(0.1f))
 
@@ -117,11 +100,6 @@ fun CultureGameScreen(
                 Spacer(modifier = Modifier.weight(0.1f))
             }
 
-            /**
-             * Notificación de Recompensa:
-             * Se activa mediante [AnimatedVisibility] cuando el usuario alcanza un hito
-             * de racha (ej. cada 100 aciertos) para restaurar el comodín.
-             */
             AnimatedVisibility(
                 visible = showRewardNotify,
                 enter = fadeIn() + slideInVertically(),
@@ -151,9 +129,6 @@ fun CultureGameScreen(
     }
 }
 
-/**
- * Layout de introducción: Explica las reglas de supervivencia y muestra el récord personal.
- */
 @Composable
 fun IntroLayout(onBack: () -> Unit, font: FontFamily, best: Int, ctx: android.content.Context, vm: CultureViewModel, onStart: () -> Unit) {
     Column(modifier = Modifier.fillMaxSize().padding(24.dp), horizontalAlignment = Alignment.CenterHorizontally) {
@@ -180,10 +155,10 @@ fun IntroLayout(onBack: () -> Unit, font: FontFamily, best: Int, ctx: android.co
                 Text(text = "REGLAS DE SUPERVIVENCIA:", fontWeight = FontWeight.Black, fontSize = 14.sp, color = Color.DarkGray)
                 Spacer(modifier = Modifier.height(8.dp))
                 Text(
-                    "• Muerte súbita: Un solo fallo y estás fuera.\n" +
-                            "• Comodín 50/50: Elimina dos opciones incorrectas.\n" +
-                            "• Recarga: Recuperarás el uso del comodín cada 100 aciertos.\n"+
-                            "• Evolución: A partir de la racha 500, el comodín eliminará TODAS las opciones incorrectas.",
+                    "• Tienes 3 vidas: No seas expulsado de la expedición.\n" +
+                            "• Comodín 50/50: Elimina opciones incorrectas.\n" +
+                            "• Recarga dinámica: El comodín vuelve cada 50 aciertos (y cada 25 tras la racha 500).\n"+
+                            "• Evolución: A partir de la racha 500, el comodín elimina TODAS las opciones incorrectas.",
                     fontSize = 15.sp, lineHeight = 20.sp, color = Color.Black
                 )
             }
@@ -202,74 +177,51 @@ fun IntroLayout(onBack: () -> Unit, font: FontFamily, best: Int, ctx: android.co
     }
 }
 
-/**
- * Layout de finalización: Gestiona tanto la derrota como la victoria absoluta.
- */
 @Composable
-fun GameOverLayout(
-    font: FontFamily,
-    isNew: Boolean,
-    best: Int,
-    streak: Int,
-    score: Int,
-    ctx: android.content.Context,
-    vm: CultureViewModel,
-    isVictory: Boolean,
-    onBack: () -> Unit
-) {
-    Column(
-        modifier = Modifier.fillMaxSize().padding(24.dp),
-        horizontalAlignment = Alignment.CenterHorizontally,
-        verticalArrangement = Arrangement.Center
-    ) {
-        Text(
-            text = if (isVictory) "¡Leyenda Mundial!" else "Expedición Fallida",
-            fontSize = 42.sp,
-            fontFamily = font,
-            color = if (isVictory) Color(0xFFFFA000) else Color.Red,
-            fontWeight = FontWeight.Bold,
-            textAlign = TextAlign.Center
-        )
-
-        if (isVictory) {
-            Text("Has completado todos los desafíos.", fontSize = 18.sp, color = Color.DarkGray, textAlign = TextAlign.Center)
-        } else if (isNew) {
-            Text("¡NUEVO RÉCORD!", fontSize = 22.sp, color = Color(0xFF4CAF50), fontWeight = FontWeight.Bold)
-        } else {
-            Text("Récord a batir: $best", color = Color.Gray)
-        }
-
+fun GameOverLayout(font: FontFamily, isNew: Boolean, best: Int, streak: Int, score: Int, ctx: android.content.Context, vm: CultureViewModel, isVictory: Boolean, onBack: () -> Unit) {
+    Column(modifier = Modifier.fillMaxSize().padding(24.dp), horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.Center) {
+        Text(text = if (isVictory) "¡Leyenda Mundial!" else "Expedición Fallida", fontSize = 42.sp, fontFamily = font, color = if (isVictory) Color(0xFFFFA000) else Color.Red, fontWeight = FontWeight.Bold, textAlign = TextAlign.Center)
+        if (isVictory) Text("Has completado todos los desafíos.", fontSize = 18.sp, color = Color.DarkGray, textAlign = TextAlign.Center)
+        else if (isNew) Text("¡NUEVO RÉCORD!", fontSize = 22.sp, color = Color(0xFF4CAF50), fontWeight = FontWeight.Bold)
+        else Text("Récord a batir: $best", color = Color.Gray)
         Spacer(modifier = Modifier.height(30.dp))
         Text("Racha Final: $streak", fontSize = 22.sp)
         Text("$score XP", fontSize = 54.sp, fontWeight = FontWeight.Black)
-
         Spacer(modifier = Modifier.height(40.dp))
-
         if (!isVictory) {
             Button(onClick = { vm.startGame(ctx) }, modifier = Modifier.fillMaxWidth().height(55.dp), colors = ButtonDefaults.buttonColors(containerColor = Color.Black)) {
                 Text("INTENTAR DE NUEVO", color = Color.White, fontWeight = FontWeight.Bold)
             }
         }
-
-        TextButton(onClick = onBack) {
-            Text(if (isVictory) "Volver con honor" else "Volver al menú", color = Color.Gray)
-        }
+        TextButton(onClick = onBack) { Text(if (isVictory) "Volver con honor" else "Volver al menú", color = Color.Gray) }
     }
 }
 
-/**
- * Cabecera de juego: Muestra la racha actual y el récord, con feedback visual de "fuego" en rachas altas.
- */
 @Composable
-fun GameHeader(vm: CultureViewModel, streak: Int, best: Int, textColor: Color) {
-    Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
-        IconButton(onClick = { vm.isGameOver.value = true }) { Icon(Icons.AutoMirrored.Filled.ArrowBack, null, tint = textColor) }
-        Column(horizontalAlignment = Alignment.End) {
-            Row(verticalAlignment = Alignment.CenterVertically) {
-                if (streak >= 5) Icon(Icons.Default.LocalFireDepartment, null, tint = Color(0xFFFF5722))
-                Text(" Racha: $streak", fontSize = 22.sp, fontWeight = FontWeight.Bold, color = textColor)
+fun GameHeader(vm: CultureViewModel, streak: Int, best: Int, lives: Int, textColor: Color) {
+    Column(modifier = Modifier.fillMaxWidth()) {
+        Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
+            IconButton(onClick = { vm.isGameOver.value = true }) { Icon(Icons.AutoMirrored.Filled.ArrowBack, null, tint = textColor) }
+            
+            // Visualización de las 3 Vidas (Corazones)
+            Row {
+                repeat(3) { index ->
+                    Icon(
+                        imageVector = Icons.Default.Favorite,
+                        contentDescription = null,
+                        tint = if (index < lives) Color.Red else Color.Red.copy(alpha = 0.2f),
+                        modifier = Modifier.size(28.dp).padding(horizontal = 2.dp)
+                    )
+                }
             }
-            if (best > 0) Text("🏆 Récord: $best", fontSize = 12.sp, color = textColor.copy(alpha = 0.6f))
+
+            Column(horizontalAlignment = Alignment.End) {
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    if (streak >= 5) Icon(Icons.Default.LocalFireDepartment, null, tint = Color(0xFFFF5722))
+                    Text(" Racha: $streak", fontSize = 22.sp, fontWeight = FontWeight.Bold, color = textColor)
+                }
+                if (best > 0) Text("🏆 Récord: $best", fontSize = 12.sp, color = textColor.copy(alpha = 0.6f))
+            }
         }
     }
 }
@@ -281,9 +233,6 @@ fun QuestionCard(q: CultureQuestion) {
     }
 }
 
-/**
- * Rejilla de opciones: Maneja el feedback de respuesta correcta/incorrecta mediante colores.
- */
 @Composable
 fun OptionsLayout(options: List<String>, q: CultureQuestion, selected: String?, vm: CultureViewModel) {
     Column(verticalArrangement = Arrangement.spacedBy(14.dp)) {
@@ -307,20 +256,15 @@ fun OptionsLayout(options: List<String>, q: CultureQuestion, selected: String?, 
                     Text(option, color = Color.Black, fontSize = 18.sp, textAlign = TextAlign.Center)
                 }
             } else {
-                // Espaciador para mantener la consistencia visual cuando el comodín elimina opciones
                 Spacer(modifier = Modifier.height(60.dp))
             }
         }
     }
 }
 
-/**
- * Botón de Comodín: Evoluciona dinámicamente según la racha alcanzada.
- */
 @Composable
 fun WildcardButton(hasUsed: Boolean, selected: String?, vm: CultureViewModel) {
     val streak by vm.streak
-
     val buttonText = when {
         hasUsed -> "Comodín Gastado"
         streak >= 500 -> "Eliminación Total"
@@ -331,9 +275,7 @@ fun WildcardButton(hasUsed: Boolean, selected: String?, vm: CultureViewModel) {
         OutlinedButton(
             onClick = { vm.useFiftyFifty() },
             enabled = !hasUsed && selected == null,
-            colors = ButtonDefaults.outlinedButtonColors(
-                containerColor = if (hasUsed) Color.Transparent else Color(0xFFFFE082)
-            ),
+            colors = ButtonDefaults.outlinedButtonColors(containerColor = if (hasUsed) Color.Transparent else Color(0xFFFFE082)),
             modifier = Modifier.height(50.dp)
         ) {
             Icon(Icons.Default.Support, null)

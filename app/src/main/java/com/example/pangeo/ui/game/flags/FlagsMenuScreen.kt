@@ -1,4 +1,4 @@
-package com.example.pangeo.ui.games.flags
+package com.example.pangeo.ui.game.flags
 
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
@@ -28,24 +28,16 @@ import com.example.pangeo.R
 
 /**
  * Pantalla de selección regional para el modo de juego de Banderas.
- * * Provee un acceso jerárquico a las expediciones por continente.
- * * Sigue el patrón de diseño de "descubrimiento progresivo", mostrando
- * claramente qué contenido está listo para jugar y cuál se encuentra en desarrollo.
- *
- * @param onNavigateBack Acción para regresar al selector de tipos de juego.
- * @param onNavigateToEurope Acción para iniciar el desafío de banderas europeas.
  */
 @Composable
 fun FlagsMenuScreen(
     onNavigateBack: () -> Unit,
     onNavigateToEurope: () -> Unit
 ) {
-    // Definición de tipografía manuscrita para coherencia de marca
     val caveatFamily = remember { try { FontFamily(Font(R.font.caveat)) } catch (e: Exception) { FontFamily.Serif } }
     val scrollState = rememberScrollState()
 
     Box(modifier = Modifier.fillMaxSize().background(Color(0xFFFDFDFD))) {
-        // Fondo temático: Mapa mundi sutil (marca de agua)
         Image(
             painter = painterResource(id = R.drawable.mapamundo),
             contentDescription = null,
@@ -59,7 +51,6 @@ fun FlagsMenuScreen(
                 .verticalScroll(scrollState)
                 .padding(24.dp)
         ) {
-            // --- CABECERA DE NAVEGACIÓN ---
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 verticalAlignment = Alignment.CenterVertically
@@ -89,8 +80,6 @@ fun FlagsMenuScreen(
 
             Spacer(modifier = Modifier.height(30.dp))
 
-            // --- CONTENIDO ACTIVO: EUROPA ---
-            // Se utiliza el color granate/rojo característico de la sección de banderas
             ContinentButton(
                 title = "Europa",
                 imageRes = R.drawable.mapaeuropa,
@@ -99,7 +88,6 @@ fun FlagsMenuScreen(
 
             Spacer(modifier = Modifier.height(24.dp))
 
-            // --- SECCIÓN DE PRÓXIMOS LANZAMIENTOS ---
             Text(
                 text = "Próximamente",
                 fontSize = 24.sp,
@@ -121,12 +109,6 @@ fun FlagsMenuScreen(
     }
 }
 
-/**
- * Componente de tarjeta para continentes habilitados.
- * * @param title Nombre de la región geográfica.
- * @param imageRes Referencia al recurso visual del mapa regional.
- * @param onClick Evento de navegación al ser pulsado.
- */
 @Composable
 fun ContinentButton(
     title: String,
@@ -146,7 +128,6 @@ fun ContinentButton(
             modifier = Modifier.fillMaxSize().padding(16.dp),
             verticalAlignment = Alignment.CenterVertically
         ) {
-            // Contenedor circular para el icono regional
             Surface(
                 modifier = Modifier.size(70.dp),
                 shape = RoundedCornerShape(16.dp),
@@ -171,10 +152,6 @@ fun ContinentButton(
     }
 }
 
-/**
- * Componente visual para regiones en desarrollo.
- * Utiliza una estética de "deshabilitado" mediante colores neutros y opacidad baja.
- */
 @Composable
 fun LockedContinentButton(title: String) {
     Card(

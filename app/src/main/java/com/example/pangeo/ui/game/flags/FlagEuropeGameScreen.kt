@@ -1,4 +1,4 @@
-package com.example.pangeo.ui.games.flags
+package com.example.pangeo.ui.game.flags
 
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.Image
@@ -27,14 +27,6 @@ import com.example.pangeo.viewmodel.FlagsViewModel
 
 /**
  * Pantalla principal del juego de Banderas de Europa.
- * * Gestiona la lógica de expedición visual permitiendo dos niveles de dificultad:
- * 1. Selección: Reconocimiento entre 4 opciones dadas.
- * 2. Escritura: Recuerdo activo (Active Recall) escribiendo el nombre del país.
- * * Implementa persistencia de récords de tiempo y puntos de experiencia (XP) mediante Firebase.
- *
- * @param viewModel Lógica de negocio específica para el flujo de banderas y cronómetro.
- * @param authViewModel Gestión de la cuenta del usuario para guardar XP y récords.
- * @param onNavigateBack Callback para el retorno seguro al menú de selección de juegos.
  */
 @Composable
 fun FlagEuropeGameScreen(
@@ -44,11 +36,9 @@ fun FlagEuropeGameScreen(
 ) {
     val caveatFamily = remember { try { FontFamily(Font(R.font.caveat)) } catch (e: Exception) { FontFamily.Serif } }
 
-    // Estados locales para la orquestación del flujo de partida
     var showIntro by remember { mutableStateOf(true) }
     var gameMode by remember { mutableStateOf("botones") }
 
-    // Observación de estados reactivos desde el ViewModel
     val currentQuestion = viewModel.currentQuestion
     val score by viewModel.score
     val isGameOver by viewModel.isGameOver
@@ -57,7 +47,6 @@ fun FlagEuropeGameScreen(
     val totalQuestions by viewModel.totalQuestions
     val currentIndex by viewModel.currentQuestionIndex
 
-    // Gestión y formateo del cronómetro de expedición
     val elapsedTime by viewModel.elapsedTime
     val minutes = elapsedTime / 60
     val seconds = elapsedTime % 60
@@ -67,15 +56,11 @@ fun FlagEuropeGameScreen(
     var isNewBestTime by remember { mutableStateOf(false) }
     var inputText by remember { mutableStateOf("") }
 
-    /**
-     * Sincronización de resultados al finalizar el juego.
-     * Se calcula el bono de "Pleno" y se delega al repositorio de Auth el guardado de récords.
-     */
     LaunchedEffect(isGameOver) {
         if (isGameOver && !showIntro) {
             var totalXP = score
             if (score == maxScore && maxScore > 0) {
-                totalXP += 500 // Bonificación por precisión perfecta
+                totalXP += 500
             }
             authViewModel.addXP(totalXP)
 
@@ -86,10 +71,6 @@ fun FlagEuropeGameScreen(
         }
     }
 
-    /**
-     * Cleanup de la sesión de juego.
-     * Asegura que el cronómetro se detenga y el estado se reinicie al abandonar la pantalla.
-     */
     DisposableEffect(Unit) {
         onDispose {
             viewModel.resetGame()
@@ -101,7 +82,6 @@ fun FlagEuropeGameScreen(
 
     Box(modifier = Modifier.fillMaxSize().background(Color(0xFFFDFDFD))) {
         if (showIntro) {
-            // --- ESTADO 1: INTRODUCCIÓN Y SELECCIÓN DE DIFICULTAD ---
             Column(
                 modifier = Modifier.fillMaxSize().padding(24.dp),
                 horizontalAlignment = Alignment.CenterHorizontally
@@ -127,7 +107,6 @@ fun FlagEuropeGameScreen(
 
                 Spacer(modifier = Modifier.weight(0.3f))
 
-                // Botón Modo Selección: Color Granate PanGeo
                 Button(
                     onClick = { gameMode = "botones"; showIntro = false; viewModel.resetGame() },
                     modifier = Modifier.fillMaxWidth().height(65.dp).shadow(4.dp, RoundedCornerShape(16.dp)),
@@ -139,7 +118,6 @@ fun FlagEuropeGameScreen(
 
                 Spacer(modifier = Modifier.height(16.dp))
 
-                // Botón Modo Escritura: Color Rojo Alerta
                 Button(
                     onClick = { gameMode = "texto"; showIntro = false; viewModel.resetGame() },
                     modifier = Modifier.fillMaxWidth().height(65.dp).shadow(4.dp, RoundedCornerShape(16.dp)),
@@ -153,7 +131,6 @@ fun FlagEuropeGameScreen(
             }
 
         } else if (isGameOver) {
-            // --- ESTADO 2: RESUMEN DE EXPEDICIÓN ---
             Column(
                 modifier = Modifier.fillMaxSize().padding(horizontal = 24.dp),
                 verticalArrangement = Arrangement.Center,
@@ -186,7 +163,6 @@ fun FlagEuropeGameScreen(
 
                 Spacer(modifier = Modifier.height(25.dp))
 
-                // Indicador de Récord de Tiempo
                 Surface(
                     color = if (isNewBestTime) Color(0xFFFFF9C4) else Color(0xFFE3F2FD),
                     shape = RoundedCornerShape(12.dp),
@@ -214,12 +190,10 @@ fun FlagEuropeGameScreen(
                 }
             }
         } else {
-            // --- ESTADO 3: GAMEPLAY ACTIVO ---
             Column(
                 modifier = Modifier.fillMaxSize().padding(24.dp),
                 horizontalAlignment = Alignment.CenterHorizontally
             ) {
-                // Barra de Estado Superior (HUD)
                 Row(
                     modifier = Modifier.fillMaxWidth(),
                     horizontalArrangement = Arrangement.SpaceBetween,
@@ -243,7 +217,6 @@ fun FlagEuropeGameScreen(
                 Spacer(modifier = Modifier.weight(0.1f))
 
                 currentQuestion?.let { question ->
-                    // Tarjeta de la Bandera: Se utiliza ContentScale.Crop para una estética más profesional
                     Card(
                         modifier = Modifier.fillMaxWidth().aspectRatio(1.6f).shadow(8.dp, RoundedCornerShape(20.dp)),
                         shape = RoundedCornerShape(20.dp)
@@ -258,14 +231,12 @@ fun FlagEuropeGameScreen(
 
                     Spacer(modifier = Modifier.weight(0.2f))
 
-                    // Lógica de UI condicional según el Modo de Juego
                     if (gameMode == "botones") {
                         Column(verticalArrangement = Arrangement.spacedBy(14.dp)) {
                             question.options.forEach { option ->
                                 val isCorrect = option == question.correctAnswer
                                 val isChosen = option == selectedAnswer
 
-                                // Definición dinámica de colores para feedback inmediato
                                 val bgColor = when {
                                     selectedAnswer == null -> Color.White
                                     isCorrect -> Color(0xFFC8E6C9)
@@ -288,7 +259,6 @@ fun FlagEuropeGameScreen(
                             }
                         }
                     } else {
-                        // Modo Escritura con validación automática
                         OutlinedTextField(
                             value = inputText,
                             onValueChange = {
@@ -330,13 +300,6 @@ fun FlagEuropeGameScreen(
     }
 }
 
-/**
- * Componente reutilizable para los botones de respuesta.
- * * @param text Texto de la opción de respuesta.
- * @param backgroundColor Color de fondo dinámico según acierto/fallo.
- * @param borderColor Color de borde dinámico.
- * @param onClick Acción de validación.
- */
 @Composable
 fun AnswerButton(
     text: String,

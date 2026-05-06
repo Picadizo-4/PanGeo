@@ -74,6 +74,7 @@ fun EuropeMapScreen(
 
     val gameMode = viewModel.gameMode
     val maxPossibleScore = viewModel.europeCountries.size * 10
+    val totalCountriesCount = viewModel.europeCountries.size
     val formattedTime = String.format("%02d:%02d", elapsedTime / 60, elapsedTime % 60)
 
     // Esquema de colores para el feedback del mapa
@@ -142,6 +143,8 @@ fun EuropeMapScreen(
             }
         } else if (isGameOver) {
             // --- ESTADO 2: RESUMEN DE PUNTUACIÓN Y RÉCORDS ---
+            val correctCount = countryStates.values.count { it == "CORRECT" || it == "CORRECT_PARTIAL" }
+
             Column(modifier = Modifier.fillMaxSize().padding(24.dp), horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.Center) {
                 if (score >= maxPossibleScore) {
                     Text("¡PLENO TOTAL!", fontSize = 38.sp, fontFamily = caveatFamily, color = Color(0xFF4CAF50), fontWeight = FontWeight.Bold)
@@ -149,6 +152,15 @@ fun EuropeMapScreen(
                 } else {
                     Text("¡Expedición Terminada!", fontSize = 34.sp, fontFamily = caveatFamily, fontWeight = FontWeight.Bold)
                 }
+
+                Text(
+                    text = "Has acertado $correctCount de $totalCountriesCount países",
+                    fontSize = 20.sp,
+                    fontFamily = FontFamily.SansSerif,
+                    color = Color(0xFF4A60B2),
+                    fontWeight = FontWeight.Bold,
+                    modifier = Modifier.padding(top = 8.dp)
+                )
 
                 Spacer(modifier = Modifier.height(10.dp))
                 Text("$score XP", fontSize = 48.sp, fontWeight = FontWeight.Black)
@@ -177,7 +189,10 @@ fun EuropeMapScreen(
                     Column(modifier = Modifier.padding(16.dp).fillMaxWidth(), horizontalAlignment = Alignment.CenterHorizontally) {
                         if (gameMode == "botones") {
                             Text("Toca el país:", color = Color.Gray)
-                            Text(targetCountry?.name ?: "", fontSize = 28.sp, fontWeight = FontWeight.ExtraBold, color = Color(0xFF4A60B2))
+                            Text(targetCountry?.name ?: "", fontSize = 28.sp, fontWeight = FontWeight.ExtraBold, color = Color(
+                                0xFF000000
+                            )
+                            )
                         } else {
                             Text("Adivina el país azul:", fontWeight = FontWeight.Bold, color = Color.Gray)
                         }

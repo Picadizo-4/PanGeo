@@ -170,6 +170,7 @@ fun FlipFlagCard(countryName: String, flagResId: Int) {
             "Ucrania" -> "Kiev"
             "Vaticano" -> "Ciudad del Vaticano"
             "Reino Unido" -> "Londres"
+            "Kosovo" -> "Pristina"
             else -> ""
         }
     }

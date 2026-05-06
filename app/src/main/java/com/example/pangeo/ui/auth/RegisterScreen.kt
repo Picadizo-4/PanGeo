@@ -167,19 +167,31 @@ fun RegisterScreen(
 
             /**
              * Lógica de Validación de Seguridad:
-             * Se comprueba en tiempo real que ambas contraseñas coincidan para
-             * evitar errores de escritura del usuario antes de la petición al servidor.
+             * Se comprueba que la contraseña cumpla los requisitos de fuerza
+             * y que ambas coincidan.
              */
+            val isPasswordStrong = password.length >= 8 && 
+                                  password.any { it.isUpperCase() } && 
+                                  password.any { it.isDigit() }
             val passMismatch = password.isNotEmpty() && confirmPassword.isNotEmpty() && password != confirmPassword
 
-            if (passMismatch || authState is AuthState.Error) {
-                Text(
-                    text = if (passMismatch) "Las contraseñas no coinciden" else (authState as AuthState.Error).message,
-                    color = Color.Red,
-                    fontFamily = FontFamily.SansSerif,
-                    fontSize = 14.sp,
-                    modifier = Modifier.padding(top = 8.dp)
-                )
+            if ((password.isNotEmpty() && !isPasswordStrong) || passMismatch || authState is AuthState.Error) {
+                val errorMsg = when {
+                    password.isNotEmpty() && !isPasswordStrong -> "La contraseña debe tener al menos 8 caracteres, una mayúscula y un número"
+                    passMismatch -> "Las contraseñas no coinciden"
+                    authState is AuthState.Error -> (authState as AuthState.Error).message
+                    else -> ""
+                }
+                
+                if (errorMsg.isNotEmpty()) {
+                    Text(
+                        text = errorMsg,
+                        color = Color.Red,
+                        fontFamily = FontFamily.SansSerif,
+                        fontSize = 14.sp,
+                        modifier = Modifier.padding(top = 8.dp)
+                    )
+                }
             }
 
             Spacer(modifier = Modifier.height(25.dp))
@@ -187,14 +199,14 @@ fun RegisterScreen(
             // Ejecución del registro subordinado a las validaciones locales
             Button(
                 onClick = {
-                    if (nickname.isNotBlank() && email.isNotBlank() && !passMismatch) {
+                    if (nickname.isNotBlank() && email.isNotBlank() && isPasswordStrong && !passMismatch) {
                         viewModel.register(email, password, nickname)
                     }
                 },
                 modifier = Modifier.fillMaxWidth().height(56.dp),
                 colors = ButtonDefaults.buttonColors(containerColor = Color.Black),
                 shape = RoundedCornerShape(16.dp),
-                enabled = authState !is AuthState.Loading && password.isNotEmpty() && !passMismatch
+                enabled = authState !is AuthState.Loading && password.isNotEmpty() && isPasswordStrong && !passMismatch
             ) {
                 if (authState is AuthState.Loading) {
                     CircularProgressIndicator(color = Color.White, modifier = Modifier.size(24.dp), strokeWidth = 2.dp)

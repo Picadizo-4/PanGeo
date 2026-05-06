@@ -202,8 +202,13 @@ fun ProfileScreen(
 
             Spacer(modifier = Modifier.height(16.dp))
 
-            TextButton(onClick = onLogout) {
-                Text("Cerrar Sesión", color = Color.Red, fontFamily = FontFamily.SansSerif, fontWeight = FontWeight.Medium)
+            Button(
+                onClick = onLogout,
+                modifier = Modifier.fillMaxWidth().height(56.dp).shadow(4.dp, RoundedCornerShape(16.dp)),
+                colors = ButtonDefaults.buttonColors(containerColor = Color(0xFFE57373)),
+                shape = RoundedCornerShape(16.dp)
+            ) {
+                Text("CERRAR SESIÓN", fontSize = 18.sp, fontFamily = FontFamily.SansSerif, fontWeight = FontWeight.Black)
             }
 
             Spacer(modifier = Modifier.height(40.dp))

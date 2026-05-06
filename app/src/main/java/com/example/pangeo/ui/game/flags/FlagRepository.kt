@@ -76,7 +76,8 @@ object FlagRepository {
             FlagQuestion(41, R.drawable.eu_sweden, listOf("Suecia", "Finlandia", "Dinamarca", "Ucrania"), "Suecia"),
             FlagQuestion(42, R.drawable.eu_switzerland, listOf("Suiza", "Dinamarca", "Austria", "Liechtenstein"), "Suiza"),
             FlagQuestion(43, R.drawable.eu_ukraine, listOf("Ucrania", "Suecia", "Polonia", "Rumanía"), "Ucrania"),
-            FlagQuestion(44, R.drawable.eu_vatikan, listOf("Vaticano", "San Marino", "Malta", "Mónaco"), "Vaticano")
+            FlagQuestion(44, R.drawable.eu_vatikan, listOf("Vaticano", "San Marino", "Malta", "Mónaco"), "Vaticano"),
+            FlagQuestion(45, R.drawable.eu_turkey, listOf("Turquía", "Georgia", "Túnez", "Bulgaria"), "Turquía")
         )
     }
 }

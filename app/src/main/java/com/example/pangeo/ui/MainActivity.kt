@@ -22,8 +22,8 @@ import androidx.navigation.compose.rememberNavController
 import com.example.pangeo.R
 import com.example.pangeo.ui.auth.LoginScreen
 import com.example.pangeo.ui.auth.RegisterScreen
-import com.example.pangeo.ui.games.flags.FlagEuropeGameScreen
-import com.example.pangeo.ui.games.flags.FlagsMenuScreen
+import com.example.pangeo.ui.game.flags.FlagEuropeGameScreen
+import com.example.pangeo.ui.game.flags.FlagsMenuScreen
 import com.example.pangeo.ui.home.HomeScreen
 import com.example.pangeo.ui.home.ProfileScreen
 import com.example.pangeo.viewmodel.AuthState
@@ -53,18 +53,12 @@ import com.example.pangeo.viewmodel.StudyMapViewModel
 
 /**
  * Punto de entrada principal de la aplicación PanGeo.
- * * Responsabilidades:
- * 1. Inicialización del motor de Compose y temas globales.
- * 2. Gestión del estado de autenticación raíz.
- * 3. Implementación del Splash Screen animado.
- * 4. Definición del Grafo de Navegación ([NavHost]).
  */
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
 
         setContent {
-            // Carga de tipografía decorativa para branding global
             val caveatFamily = remember {
                 try {
                     FontFamily(Font(R.font.caveat))
@@ -73,7 +67,6 @@ class MainActivity : ComponentActivity() {
                 }
             }
 
-            // Aplicación del sistema de diseño (Material 3)
             MaterialTheme(
                 colorScheme = lightColorScheme(
                     primary = Color.Black,
@@ -85,14 +78,7 @@ class MainActivity : ComponentActivity() {
                     modifier = Modifier.fillMaxSize(),
                     color = MaterialTheme.colorScheme.background
                 ) {
-                    // Inicialización del controlador de navegación y proveedores de estado (ViewModels)
                     val navController = rememberNavController()
-
-                    /**
-                     * Instanciación de ViewModels:
-                     * En una arquitectura profesional, esto se delegaría a un inyector de dependencias (Dagger/Hilt),
-                     * pero aquí se gestiona mediante el scope de la Activity para mantener la simplicidad.
-                     */
                     val authViewModel: AuthViewModel = viewModel()
                     val flagsViewModel: FlagsViewModel = viewModel()
                     val capitalsViewModel: CapitalsViewModel = viewModel()
@@ -105,13 +91,12 @@ class MainActivity : ComponentActivity() {
 
                     /**
                      * Lógica de Splash Screen:
-                     * Determina si la aplicación debe mostrar la animación de carga basándose
-                     * en la resolución de la sesión de Firebase y los datos de perfil.
+                     * Ahora evitamos que se quede bloqueado en procesos que no devuelven datos de usuario,
+                     * como la recuperación de contraseña.
                      */
                     val showSplash = authState is AuthState.Loading || (authState is AuthState.Success && userData == null)
 
                     if (showSplash) {
-                        // --- VISTA DE CARGA (SPLASH) ---
                         Box(
                             modifier = Modifier.fillMaxSize().background(Color.White),
                             contentAlignment = Alignment.Center
@@ -158,16 +143,9 @@ class MainActivity : ComponentActivity() {
                             }
                         }
                     } else {
-                        /**
-                         * GRAFO DE NAVEGACIÓN PRINCIPAL:
-                         * Define todas las pantallas y sus transiciones.
-                         * La ruta inicial se decide dinámicamente según el [authState].
-                         */
                         val startRoute = if (authState is AuthState.Success) "home" else "login"
 
                         NavHost(navController = navController, startDestination = startRoute) {
-
-                            // --- FLUJO DE AUTENTICACIÓN ---
                             composable("login") {
                                 LoginScreen(
                                     viewModel = authViewModel,
@@ -184,8 +162,6 @@ class MainActivity : ComponentActivity() {
                                     viewModel = authViewModel,
                                     onNavigateBack = { navController.popBackStack() })
                             }
-
-                            // --- FLUJO HOME Y PERFIL ---
                             composable("home") {
                                 HomeScreen(
                                     viewModel = authViewModel,
@@ -203,8 +179,6 @@ class MainActivity : ComponentActivity() {
                                     }
                                 )
                             }
-
-                            // --- MÓDULOS DE JUEGO: BANDERAS ---
                             composable("banderas_menu") {
                                 FlagsMenuScreen(
                                     onNavigateBack = { navController.popBackStack() },
@@ -218,8 +192,6 @@ class MainActivity : ComponentActivity() {
                                     onNavigateBack = { navController.popBackStack() }
                                 )
                             }
-
-                            // --- MÓDULOS DE JUEGO: CAPITALES ---
                             composable("capitals_menu") {
                                 CapitalsMenuScreen(
                                     onNavigateBack = { navController.popBackStack() },
@@ -233,8 +205,6 @@ class MainActivity : ComponentActivity() {
                                     onNavigateBack = { navController.popBackStack() }
                                 )
                             }
-
-                            // --- MÓDULOS DE JUEGO: CULTURA ---
                             composable("cultura") {
                                 CultureGameScreen(
                                     viewModel = cultureViewModel,
@@ -242,8 +212,6 @@ class MainActivity : ComponentActivity() {
                                     onNavigateBack = { navController.popBackStack() }
                                 )
                             }
-
-                            // --- MÓDULOS DE JUEGO: MAPAS ---
                             composable("maps_menu") {
                                 MapsMenuScreen(
                                     onNavigateBack = { navController.popBackStack() },
@@ -258,8 +226,6 @@ class MainActivity : ComponentActivity() {
                                     onNavigateBack = { navController.popBackStack() }
                                 )
                             }
-
-                            // --- SOCIAL Y RÉCORDS ---
                             composable("achievements") {
                                 AchievementsScreen(
                                     onNavigateBack = { navController.popBackStack() },
@@ -279,8 +245,6 @@ class MainActivity : ComponentActivity() {
                                     onNavigateBack = { navController.popBackStack() }
                                 )
                             }
-
-                            // --- BIBLIOTECA DE ESTUDIO (MÓDULO EDUCATIVO) ---
                             composable("estudio") {
                                 StudyMenuScreen(
                                     onNavigateBack = { navController.popBackStack() },

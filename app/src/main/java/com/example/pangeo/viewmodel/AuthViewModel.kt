@@ -18,6 +18,7 @@ sealed class AuthState {
     object Idle : AuthState()
     object Loading : AuthState()
     object Success : AuthState()
+    object ResetEmailSent : AuthState()
     data class Error(val message: String) : AuthState()
 }
 
@@ -156,7 +157,7 @@ class AuthViewModel : ViewModel() {
         auth.sendPasswordResetEmail(email)
             .addOnCompleteListener { task ->
                 if (task.isSuccessful) {
-                    _authState.value = AuthState.Success
+                    _authState.value = AuthState.ResetEmailSent
                 } else {
                     _authState.value = AuthState.Error("No pudimos enviar el correo de recuperación.")
                 }
