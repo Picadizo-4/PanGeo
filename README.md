@@ -30,4 +30,4 @@ Actualmente, el *Producto Mínimo Viable (MVP)* se centra en el mapa político d
 </div>
 
 ## 👤 Desarrollo
-* *Miguel Ángel Ordóñez Picadizo* - Desarrollo integral (UI/UX, Lógica y Backend) - [![LinkedIn](https://img.shields.io/badge/LinkedIn-Connect-blue)](www.linkedin.com/in/miguel-angel-ordonez-picadizo)
+* **Miguel Ángel Ordóñez Picadizo** - *Desarrollo integral (UI/UX, Lógica y Backend)* - [![LinkedIn](https://img.shields.io/badge/LinkedIn-Connect-blue)](https://www.linkedin.com/in/miguel-angel-ordonez-picadizo)
