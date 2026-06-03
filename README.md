@@ -28,7 +28,6 @@ Actualmente, el *Producto Mínimo Viable (MVP)* se centra en el mapa político d
   <img src="Mapas.png" width="250">
   <img src="Logros.png" width="250">
   <img src="Ranking.png" width="250">
-  <p><i>(Capturas de pantalla próximamente)</i></p>
 </div>
 
 ## 👤 Desarrollo
