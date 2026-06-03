@@ -16,7 +16,7 @@ Actualmente, el *Producto Mínimo Viable (MVP)* se centra en el mapa político d
 * *Sistema Gamificado:* Identificación visual de países para un aprendizaje mucho más intuitivo que las clásicas listas de texto.
 * *Backend Optimizado:* Uso de estructuras de datos planas para lecturas rápidas y eficientes.
 
-### 🕹️ Modos de Juego y Características
+## 🕹️ Modos de Juego y Características
 
 Para ofrecer una experiencia completa de aprendizaje, la aplicación está estructurada en diferentes módulos que gestionan distintas lógicas de juego y flujos de datos:
 
