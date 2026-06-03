@@ -2,9 +2,9 @@
 
 Una aplicación móvil nativa para Android que transforma el aprendizaje de la geografía en una experiencia interactiva y gamificada.
 
-<div align="center">
-  <video src="JuegoMapas.mp4" width="300" autoplay loop muted playsinline></video>
-</div>
+
+https://github.com/user-attachments/assets/afe76060-23da-4732-8143-36348a3c3447
+
 
 ## 🎯 Sobre el proyecto
 PanGeo nace con el objetivo de ofrecer una experiencia de usuario fluida y táctil. A través de mapas interactivos, los jugadores pueden poner a prueba sus conocimientos identificando países de forma visual.
@@ -27,7 +27,6 @@ Actualmente, el *Producto Mínimo Viable (MVP)* se centra en el mapa político d
   <img src="Menu.png" width="250">
   <img src="Mapas.png" width="250">
   <img src="Logros.png" width="250">
-  <img src="Ranking.png" width="250">
 </div>
 
 ## 👤 Desarrollo
