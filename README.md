@@ -16,6 +16,16 @@ Actualmente, el *Producto Mínimo Viable (MVP)* se centra en el mapa político d
 * *Sistema Gamificado:* Identificación visual de países para un aprendizaje mucho más intuitivo que las clásicas listas de texto.
 * *Backend Optimizado:* Uso de estructuras de datos planas para lecturas rápidas y eficientes.
 
+### 🕹️ Modos de Juego y Características
+
+Para ofrecer una experiencia completa de aprendizaje, la aplicación está estructurada en diferentes módulos que gestionan distintas lógicas de juego y flujos de datos:
+
+* **Juego de Mapas:** Identificación interactiva y dinámica sobre mapas vectoriales (SVG). Es el núcleo del proyecto y el modo principal que se muestra en el vídeo de demostración.
+* **Juego de Banderas:** Módulo interactivo centrado en el reconocimiento y asociación visual de las banderas correspondientes a cada territorio.
+* **Juego de Capitales:** Un test de asociación diseñado para poner a prueba el dominio de las capitales mundiales.
+* **Quiz de Cultura General:** Un modo de juego complementario con preguntas de opción múltiple (Trivia) sobre historia, datos curiosos y geografía general.
+* **Sección de Biblioteca (Modo Estudio):** Un espacio dedicado al repaso didáctico. Integra las mecánicas de mapas, banderas y capitales pero bajo un enfoque no competitivo; permite al usuario explorar libremente la información y estudiar a su propio ritmo sin la presión de un sistema de puntuación o juego.
+
 ## 🛠️ Tecnologías y Arquitectura
 * *Lenguaje:* Kotlin
 * *Arquitectura:* MVVM (Model-View-ViewModel)
